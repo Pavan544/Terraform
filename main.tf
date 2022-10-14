@@ -1,55 +1,69 @@
+#provider
+
 provider "aws" {
-  region = var.aws_region
+  region="us-east-1"
+}
+resource "aws_vpc" "vpc" {
+  cidr_block       = "10.0.0.0/16"
+  instance_tenancy = "default"
+
+  tags = {
+    Name = "my-VPC"
+  }
 }
 
-#Create security group with firewall rules
-resource "aws_security_group" "my_security_group" {
-  name        = var.security_group
-  description = "security group for Ec2 instance"
+resource "aws_subnet" "Private" {
+  vpc_id     = aws_vpc.vpc.id
+  cidr_block = "10.0.1.0/24"
+
+  tags = {
+    Name = "Private"
+  }
+}
+
+  resource "aws_subnet" "Public" {
+  vpc_id     = aws_vpc.vpc.id
+  cidr_block = "10.0.2.0/24"
+
+  tags = {
+    Name = "Public"
+  }
+}
+resource "aws_security_group" "tsg" {
+  name        = "terraform-sg"
+  description = "Default SG to allow traffic from the VPC"
+  vpc_id      = aws_vpc.vpc.id
+  depends_on = [
+    aws_vpc.vpc
+  ]
 
   ingress {
-    from_port   = 8080
-    to_port     = 8080
-    protocol    = "tcp"
-    cidr_blocks = ["0.0.0.0/0"]
+    description      = "SSH from VPC"
+    from_port        = 22
+    to_port          = 22
+    protocol         = "tcp"
+    cidr_blocks      = [aws_vpc.vpc.cidr_block]
   }
 
- ingress {
-    from_port   = 22
-    to_port     = 22
-    protocol    = "tcp"
-    cidr_blocks = ["0.0.0.0/0"]
-  }
-
- # outbound from jenkis server
   egress {
-    from_port   = 0
-    to_port     = 65535
-    protocol    = "tcp"
-    cidr_blocks = ["0.0.0.0/0"]
+    from_port = "0"
+    to_port   = "0"
+    protocol  = "-1"
+    cidr_blocks = [aws_vpc.vpc.cidr_block]
   }
 
-  tags= {
-    Name = var.security_group
-  }
-}
-
-# Create AWS ec2 instance
-resource "aws_instance" "myFirstInstance" {
-  ami           = var.ami_id
-  key_name = var.key_name
-  instance_type = var.instance_type
-  security_groups= [var.security_group]
-  tags= {
-    Name = var.tag_name
+  tags = {
+    Name = "allow-ssh"
   }
 }
 
-# Create Elastic IP address
-resource "aws_eip" "myFirstInstance" {
-  vpc      = true
-  instance = aws_instance.myFirstInstance.id
-tags= {
-    Name = "my_elastic_ip"
+resource "aws_instance" "web1" {
+    ami = "ami-026b57f3c383c2eec"
+    instance_type = "t2.micro"
+    subnet_id              = aws_subnet.Public.id
+    vpc_security_group_ids = [aws_security_group.tsg.id]
+    key_name = "tf-keypair"
+tags = {
+    Name = "Test-server"
   }
 }
