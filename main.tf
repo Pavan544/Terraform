@@ -64,6 +64,6 @@ resource "aws_instance" "web1" {
     vpc_security_group_ids = [aws_security_group.tsg.id]
     key_name = "Jenkins-key"
 tags = {
-    Name = "Test-server"
+    Name = "Test-server1"
   }
 }
