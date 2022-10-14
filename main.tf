@@ -58,13 +58,12 @@ resource "aws_security_group" "tsg" {
 }
 
 resource "aws_instance" "web1" {
-    count=2
     ami = "ami-026b57f3c383c2eec"
     instance_type = "t2.micro"
     subnet_id              = aws_subnet.Public.id
     vpc_security_group_ids = [aws_security_group.tsg.id]
     key_name = "Jenkins-key"
 tags = {
-    Name = "Test-server${count.index+1}"
+    Name = "Test-server"
   }
 }
